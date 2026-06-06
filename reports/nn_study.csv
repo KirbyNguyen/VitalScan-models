@@ -1,0 +1,5 @@
+dataset,n,MLP,TabNet,XGBoost_ref
+CDC_253k,20000,0.833,0.81,0.831
+iammustafatz_100k,20000,0.976,0.972,0.979
+cardio_70k,20000,0.803,0.77,0.802
+NHANES_15k,15547,0.798,0.795,0.789

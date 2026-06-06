@@ -1,0 +1,7 @@
+feature_set,n_features,model,cv_roc_auc,test_roc_auc,recall_0p5,precision_0p5,thr_recall80,precision_at_recall80
+all,21,LogReg,0.821,0.821,0.766,0.711,0.46,0.697
+all,21,RandomForest,0.808,0.807,0.773,0.697,0.46,0.68
+all,21,XGBoost,0.827,0.829,0.8,0.707,0.5,0.707
+deployable,13,LogReg,0.812,0.814,0.762,0.707,0.46,0.691
+deployable,13,RandomForest,0.773,0.78,0.746,0.677,0.42,0.657
+deployable,13,XGBoost,0.818,0.821,0.799,0.7,0.49,0.697

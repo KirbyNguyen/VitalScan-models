@@ -1,0 +1,20 @@
+{
+  "biomarkers": {
+    "heart_rate": 88,
+    "hrv_sdnn": 30,
+    "stress_index": 0.7,
+    "blood_pressure": { "systolic": 150, "diastolic": 95 }
+  },
+  "profile": {
+    "age": 62,
+    "sex": 1,
+    "bmi": 33.2,
+    "cp": 4,
+    "exang": 1,
+    "smoker": 1,
+    "phys_activity": 0,
+    "gen_health": 4,
+    "diff_walk": 1
+  },
+  "conditions": ["diabetes", "hypertension"]
+}

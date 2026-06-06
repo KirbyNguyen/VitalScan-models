@@ -1,0 +1,22 @@
+{
+  "diabetes": {
+    "Glucose": 0.7884,
+    "BMI": 0.5197,
+    "Age": 0.2466,
+    "Pregnancies": 0.1814,
+    "DiabetesPedigreeFunction": 0.1612,
+    "Insulin": 0.1439,
+    "SkinThickness": 0.0337,
+    "BloodPressure": 0.0273
+  },
+  "heart": {
+    "cp_4.0": 0.5913,
+    "exang_0.0": 0.4201,
+    "oldpeak": 0.4149,
+    "chol": 0.4028,
+    "ca_0.0": 0.2638,
+    "age": 0.2617,
+    "sex_0.0": 0.2588,
+    "thalach": 0.2545
+  }
+}

@@ -1,0 +1,21 @@
+# Python virtual environment (~1.2 GB — recreate with setup.sh / requirements.txt)
+.venv/
+venv/
+
+# Python caches
+__pycache__/
+*.pyc
+*.pyo
+
+# OS / editor cruft
+.DS_Store
+
+# Trained models (~429 MB — regenerate with: python src/train_compare.py)
+# (also covers the optional benchmark / NN-study models from the other scripts)
+models/
+
+# Library training logs
+catboost_info/
+
+# Raw NHANES download cache (~32 MB — regenerate with: python src/fetch_nhanes.py)
+data/extra/nhanes_raw/

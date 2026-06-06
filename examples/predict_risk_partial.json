@@ -1,0 +1,6 @@
+{
+  "biomarkers": {
+    "heart_rate": 88,
+    "blood_pressure": { "systolic": 150, "diastolic": 95 }
+  }
+}

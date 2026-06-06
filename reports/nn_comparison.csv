@@ -1,0 +1,3 @@
+condition,PyTorch_MLP,RandomForest,XGBoost,epochs
+diabetes,0.808,0.819,0.813,75
+heart,0.907,0.907,0.909,33
