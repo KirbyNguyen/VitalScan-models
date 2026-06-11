@@ -78,3 +78,9 @@ Hits every endpoint with the example files and pretty-prints each response.
   `imputed_features` (which lowers `confidence`). Send the listed fields for a trustworthy score.
 - Add `?algo=<name>` to any `/predict/...` endpoint to use a specific model
   (names from `GET /models`). Unknown names return a 400 listing valid choices.
+- `?algo=torch_mlp` serves the **PyTorch** neural net (needs `src/train_torch.py` to have run;
+  `setup.sh` does this). Example:
+  ```bash
+  curl -s -X POST "http://localhost:8000/predict/heart/deployable?algo=torch_mlp" \
+       -H "Content-Type: application/json" -d @examples/heart_deployable.json | python3 -m json.tool
+  ```

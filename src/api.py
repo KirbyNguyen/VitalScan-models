@@ -6,14 +6,18 @@ Routes
 GET  /health
 GET  /models                              list conditions/variants/algos + metrics
 POST /predict/{condition}/{variant}       condition: diabetes|heart, variant: full|deployable
-       ?algo=<name>                       optional; defaults to best model. Any of the 14.
+       ?algo=<name>                       optional; defaults to best. Any of the 14 sklearn/boosting
+                                           models OR 'torch_mlp' (the PyTorch net, if trained).
 POST /predict/risk                        shared biomarker contract -> both deployable models
 
-Each model pickle is a full sklearn Pipeline (impute -> scale/encode -> classifier), so
-missing inputs are median/most-frequent imputed automatically and reported back.
+Most models are a full sklearn Pipeline (impute -> scale/encode -> classifier) saved as .pkl, so
+missing inputs are imputed automatically and reported. 'torch_mlp' is a PyTorch model served from
+a .pt bundle (weights + fitted preprocessor) — see src/train_torch.py.
 
 Run:  .venv/bin/uvicorn src.api:app --reload --port 8000     (docs at /docs)
 """
+import os
+os.environ.setdefault("KMP_DUPLICATE_LIB_OK", "TRUE")   # torch + xgboost OpenMP clash (macOS)
 from pathlib import Path
 from typing import Optional, Dict, Any
 import json
@@ -33,6 +37,8 @@ app = FastAPI(title="VitalScan – Group 3 Risk API", version="1.0")
 # ---------------------------------------------------------------- registry
 _META: Dict[tuple, dict] = {}
 _CACHE: Dict[tuple, dict] = {}  # (cond, variant, algo) -> bundle
+
+_TORCH: Dict[tuple, tuple] = {}   # (cond, variant) -> (torch model, saved bundle)
 
 def _meta(cond: str, variant: str) -> dict:
     key = (cond, variant)
@@ -75,21 +81,17 @@ def _confidence(prob: float, provided_ratio: float) -> str:
     margin = abs(prob - 0.5) * 2
     return "high" if margin > 0.5 else "medium"
 
-def _predict(cond: str, variant: str, algo: Optional[str], feats: Dict[str, Any]) -> dict:
-    bundle = _bundle(cond, variant, algo)
-    meta = _meta(cond, variant)
-    cols = bundle["features"]
+def _build_row(feats: Dict[str, Any], cols):
+    """1-row DataFrame with all model columns; missing -> NaN (the pipeline imputes them)."""
     provided = {k: v for k, v in feats.items() if v is not None and k in cols}
     imputed = [c for c in cols if c not in provided]
-    row = {c: provided.get(c, np.nan) for c in cols}
-    X = pd.DataFrame([row], columns=cols)
-    prob = float(bundle["pipeline"].predict_proba(X)[0, 1])
-    thr = float(bundle["threshold"])
-    resolved = algo or meta["best_algo"]
+    X = pd.DataFrame([{c: provided.get(c, np.nan) for c in cols}], columns=cols)
+    return provided, imputed, X
+
+def _response(cond, variant, resolved, prob, thr, provided, cols, imputed, meta):
     s = meta["models"][resolved]
     return dict(condition=cond, variant=variant, algo=resolved,
-                risk=round(prob, 4), at_risk=bool(prob >= thr),
-                threshold=round(thr, 2),
+                risk=round(prob, 4), at_risk=bool(prob >= thr), threshold=round(thr, 2),
                 confidence=_confidence(prob, len(provided) / len(cols)),
                 imputed_features=imputed,
                 # how good the model that produced this score is (measured on the test set)
@@ -97,6 +99,49 @@ def _predict(cond: str, variant: str, algo: Optional[str], feats: Dict[str, Any]
                                    precision=s["precision"], recall=s["recall"], f1=s["f1"],
                                    recall_at_threshold=s["recall_at_threshold"],
                                    precision_at_threshold=s["precision_at_recall80"]))
+
+def _torch_predict(cond, variant, feats, meta):
+    """Serve the PyTorch MLP: reload weights + fitted preprocessor, forward pass, sigmoid."""
+    import torch                       # lazy — API startup stays torch-free
+    import torch.nn as nn
+    key = (cond, variant)
+    if key not in _TORCH:
+        p = MODELS_DIR / VARIANT_DIR[variant] / cond / "torch_mlp.pt"
+        if not p.exists():
+            raise HTTPException(400, "torch_mlp not trained for this group — run src/train_torch.py")
+        b = torch.load(p, weights_only=False)   # bundle holds a pickled sklearn preprocessor
+        # architecture MUST match src/torch_nn.py MLP (state_dict keys net.0/3/6.*)
+        class _MLP(nn.Module):
+            def __init__(self, d):
+                super().__init__()
+                self.net = nn.Sequential(nn.Linear(d, 64), nn.ReLU(), nn.Dropout(0.3),
+                                         nn.Linear(64, 32), nn.ReLU(), nn.Dropout(0.3),
+                                         nn.Linear(32, 1))
+            def forward(self, x):
+                return self.net(x)
+        m = _MLP(b["input_dim"]); m.load_state_dict(b["state_dict"]); m.eval()
+        _TORCH[key] = (m, b)
+    model, b = _TORCH[key]
+    cols = b["features"]
+    provided, imputed, X = _build_row(feats, cols)
+    Z = b["preprocessor"].transform(X)
+    Z = (Z.toarray() if hasattr(Z, "toarray") else np.asarray(Z)).astype("float32")
+    with torch.no_grad():
+        prob = float(torch.sigmoid(model(torch.tensor(Z)))[0, 0])
+    return _response(cond, variant, "torch_mlp", prob, float(b["threshold"]),
+                     provided, cols, imputed, meta)
+
+def _predict(cond: str, variant: str, algo: Optional[str], feats: Dict[str, Any]) -> dict:
+    meta = _meta(cond, variant)
+    resolved = algo or meta["best_algo"]
+    if resolved == "torch_mlp":                 # PyTorch path (not a sklearn .pkl Pipeline)
+        return _torch_predict(cond, variant, feats, meta)
+    bundle = _bundle(cond, variant, algo)
+    cols = bundle["features"]
+    provided, imputed, X = _build_row(feats, cols)
+    prob = float(bundle["pipeline"].predict_proba(X)[0, 1])
+    return _response(cond, variant, resolved, prob, float(bundle["threshold"]),
+                     provided, cols, imputed, meta)
 
 # ---------------------------------------------------------------- schemas
 class DiabetesFull(BaseModel):

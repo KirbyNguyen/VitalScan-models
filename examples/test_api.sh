@@ -21,6 +21,10 @@ echo "============ POST /predict/heart/deployable?algo=xgboost ============"
 curl -s -X POST "$BASE/predict/heart/deployable?algo=xgboost" \
      -H "Content-Type: application/json" -d @"$DIR/heart_deployable.json" | j
 
+echo "============ POST /predict/heart/deployable?algo=torch_mlp (PyTorch) ============"
+curl -s -X POST "$BASE/predict/heart/deployable?algo=torch_mlp" \
+     -H "Content-Type: application/json" -d @"$DIR/heart_deployable.json" | j
+
 echo "============ POST /predict/diabetes/deployable (CDC, glucose-free) ============"
 curl -s -X POST "$BASE/predict/diabetes/deployable" \
      -H "Content-Type: application/json" -d @"$DIR/diabetes_deployable.json" | j

@@ -37,6 +37,7 @@ src/
 ├── visualize.py              EDA + model-comparison + ROC figures
 ├── shap_analysis.py          SHAP explainability plots + top-features (Task 3)
 ├── torch_nn.py               PyTorch MLP vs trees (Task 5 stretch)
+├── train_torch.py            trains + saves the PyTorch MLP so the API can serve ?algo=torch_mlp
 ├── fetch_nhanes.py           assembles NHANES diabetes data (NN study)
 ├── nn_study.py               NN-only study: MLP vs TabNet vs XGBoost + AUC-vs-datasize scaling
 └── api.py                    FastAPI risk-scoring server (Task 4)
@@ -94,6 +95,7 @@ python3 -m venv .venv
 
 ```bash
 .venv/bin/python src/train_compare.py        # train + tune + save all models, write results table
+.venv/bin/python src/train_torch.py          # add the PyTorch MLP to each served group (?algo=torch_mlp)
 .venv/bin/python src/diabetes_no_glucose.py  # glucose-free diabetes experiment
 .venv/bin/python src/diabetes_hba1c_benchmark.py  # extra HbA1c benchmark (iammustafatz 100k)
 .venv/bin/python src/visualize.py            # EDA, comparison, ROC figures
@@ -153,7 +155,7 @@ Start: `.venv/bin/uvicorn src.api:app --port 8000`, then open `/docs` to click-t
 | Route | Purpose |
 |---|---|
 | `POST /predict/{condition}/{variant}` | `condition`=diabetes\|heart, `variant`=full\|deployable |
-| `…?algo=<name>` | optional — pick any of the 14 models (default = best) |
+| `…?algo=<name>` | optional — pick any of the 14 models **or `torch_mlp`** (PyTorch); default = best |
 | `POST /predict/risk` | shared biomarker contract → both deployable models at once |
 | `GET /models` | list every model + its scores/features |
 | `GET /models/best` | best model + metrics for each condition × variant (winners only) |
@@ -167,7 +169,8 @@ auto-imputed and reported; `confidence` drops to `low` when too much was guessed
 ### Which model serves each endpoint
 
 By default each endpoint uses the **best model** for that group (override with `?algo=<name>`
-to pick any of the 14). Check live winners with `GET /models/best`.
+to pick any of the 14, or **`torch_mlp`** — the PyTorch neural net, served from a `.pt` bundle).
+Check live winners with `GET /models/best`.
 
 | Endpoint | Default model | Test ROC-AUC | Fields the model uses |
 |---|---|---|---|

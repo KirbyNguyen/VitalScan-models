@@ -11,8 +11,11 @@ echo "[2/3] Installing dependencies (this can take a few minutes) ..."
 .venv/bin/pip install --quiet --upgrade pip
 .venv/bin/pip install -r requirements.txt
 
-echo "[3/3] Training the served models (builds models/ — the API needs these) ..."
+echo "[3/4] Training the served models (builds models/ — the API needs these) ..."
 .venv/bin/python src/train_compare.py >/dev/null
+
+echo "[4/4] Adding the PyTorch model (servable via ?algo=torch_mlp) ..."
+.venv/bin/python src/train_torch.py >/dev/null
 
 echo
 echo "Setup complete. Start the API with:"

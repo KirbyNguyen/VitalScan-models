@@ -133,7 +133,8 @@ explains why the deployable models, while clinically valid, must shed their stro
 ## 6. Serving and integration (API)
 
 Models are joblib-serialized as full Pipelines and served via FastAPI (`src/api.py`):
-`POST /predict/{condition}/{variant}` (with `?algo=` to select any of the 14), and
+`POST /predict/{condition}/{variant}` (with `?algo=` to select any of the 14 — or `torch_mlp`,
+the PyTorch net served from a `.pt` weights+preprocessor bundle, see `src/train_torch.py`), and
 `POST /predict/risk` consuming Group 1's biomarker contract and returning
 `{diabetes_risk, hypertension_risk, confidence}` from the deployable models, plus a `_full`
 section with the full-clinical model outputs (meaningful only when an optional `clinical` lab
@@ -165,6 +166,12 @@ XGBoost on the large datasets, and plotted AUC vs training size on CDC (1k→200
   closest to VitalScan's actual inputs.
 - Honest note: deep learning would genuinely *beat* trees only on a different modality — Group 1's
   raw rPPG **waveforms** — not on these tabular features.
+
+**7c. The PyTorch model is servable.** `src/train_torch.py` trains and saves a PyTorch MLP for all
+four served groups (weights + fitted preprocessor in a `.pt` bundle); the API exposes it via
+`?algo=torch_mlp`. It performs on par with the sklearn models (e.g. heart-deployable ≈0.87) but is
+*not* the default — the sklearn/CatBoost winners are faster and as accurate, so `torch_mlp` is
+opt-in for comparison rather than the production choice.
 
 ---
 
