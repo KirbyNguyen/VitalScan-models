@@ -48,6 +48,7 @@ models/
 
 reports/
 ├── TECHNICAL_WRITEUP.md              the 2–3 page writeup (Deliverable 15)
+├── MODELS.md                         per-model reference: how each works, params, datasets
 ├── full_vs_deployable.{csv,md}       14-model results table + written findings
 ├── diabetes_no_glucose.csv           glucose-free (CDC) experiment results
 ├── shap_interpretation.md            clinical reading of SHAP top features (Task 3)
@@ -112,7 +113,8 @@ LogReg · GaussianNB · KNN · SVM (RBF) · DecisionTree · RandomForest · Extr
 GradientBoosting · HistGradientBoosting · XGBoost · LightGBM · CatBoost · MLP (neural net).
 
 Three families: simple/linear, tree-forests (bagging), and boosting — plus a neural net that
-also covers the Task-5 stretch.
+also covers the Task-5 stretch. **For how each model works, its exact hyperparameters, and which
+dataset/features it trains on, see [reports/MODELS.md](reports/MODELS.md).**
 
 ## Headline results
 
