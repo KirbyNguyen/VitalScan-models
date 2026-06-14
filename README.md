@@ -74,6 +74,9 @@ bash setup.sh                                  # venv + deps + trains the served
 .venv/bin/uvicorn src.api:app --port 8000      # API at http://localhost:8000/docs
 ```
 
+Then open **http://localhost:8000/** for the **demo UI** (paste Group 1's scan JSON → fill the
+questionnaire → *Build payload* → *Predict*), or **/docs** to test endpoints directly.
+
 That's it — the **datasets are included** in the repo, so no downloads or Kaggle login needed.
 `setup.sh` runs `src/train_compare.py`, which rebuilds the gitignored `models/` the API loads.
 
@@ -162,6 +165,7 @@ Start: `.venv/bin/uvicorn src.api:app --port 8000`, then open `/docs` to click-t
 | `GET /models` | list every model + its scores/features |
 | `GET /models/best` | best model + metrics for each condition × variant (winners only) |
 | `GET /health` | liveness check |
+| `GET /` | demo front-end (`web/index.html`) — paste Group 1 JSON → questionnaire → predict |
 
 Each request returns `{risk, at_risk, threshold, confidence, imputed_features, model_metrics}`.
 `model_metrics` reports how good the serving model is (ROC-AUC, precision, recall, F1 — measured

@@ -25,14 +25,27 @@ import numpy as np
 import pandas as pd
 import joblib
 from fastapi import FastAPI, HTTPException, Query
+from fastapi.responses import HTMLResponse
+from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 
 ROOT = Path(__file__).resolve().parent.parent
 MODELS_DIR = ROOT / "models"
+WEB_DIR = ROOT / "web"
 VARIANT_DIR = {"full": "full_clinical", "deployable": "deployable"}
 CONDITIONS = ["diabetes", "heart"]
 
 app = FastAPI(title="VitalScan – Group 3 Risk API", version="1.0")
+# permissive CORS so the demo page works whether served by this API or opened standalone
+app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"])
+
+@app.get("/", response_class=HTMLResponse)
+def demo():
+    """Serve the demo front-end (web/index.html) at the API root — same origin, no CORS needed."""
+    page = WEB_DIR / "index.html"
+    if not page.exists():
+        raise HTTPException(404, "demo UI not found (web/index.html missing)")
+    return page.read_text()
 
 # ---------------------------------------------------------------- registry
 _META: Dict[tuple, dict] = {}

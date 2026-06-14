@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>VitalScan — Group 3 Risk Demo</title>
+<style>
+  :root { --bg:#0f172a; --card:#1e293b; --line:#334155; --txt:#e2e8f0; --mut:#94a3b8;
+          --accent:#38bdf8; --ok:#22c55e; --warn:#f59e0b; --bad:#ef4444; }
+  * { box-sizing:border-box; }
+  body { font-family:-apple-system,Segoe UI,Roboto,sans-serif; margin:0; background:var(--bg);
+         color:var(--txt); line-height:1.5; }
+  .wrap { max-width:900px; margin:0 auto; padding:24px; }
+  h1 { font-size:22px; margin:0 0 4px; }
+  .sub { color:var(--mut); margin:0 0 20px; font-size:14px; }
+  .card { background:var(--card); border:1px solid var(--line); border-radius:10px;
+          padding:18px; margin-bottom:18px; }
+  .card h2 { font-size:15px; margin:0 0 12px; color:var(--accent); }
+  textarea { width:100%; height:200px; background:#0b1220; color:var(--txt); border:1px solid var(--line);
+             border-radius:8px; padding:10px; font-family:ui-monospace,Menlo,monospace; font-size:12px; }
+  .grid { display:grid; grid-template-columns:repeat(3,1fr); gap:12px; }
+  label { display:block; font-size:12px; color:var(--mut); margin-bottom:4px; }
+  input, select { width:100%; background:#0b1220; color:var(--txt); border:1px solid var(--line);
+                  border-radius:6px; padding:7px; font-size:13px; }
+  .field { margin-bottom:4px; }
+  button { background:var(--accent); color:#04293b; border:0; border-radius:8px; padding:10px 18px;
+           font-weight:600; font-size:14px; cursor:pointer; margin-right:10px; }
+  button:disabled { background:#475569; color:#1e293b; cursor:not-allowed; }
+  pre { background:#0b1220; border:1px solid var(--line); border-radius:8px; padding:12px;
+        overflow:auto; font-size:12px; max-height:340px; }
+  .err { color:var(--bad); font-size:13px; margin-top:8px; white-space:pre-wrap; }
+  .result-grid { display:grid; grid-template-columns:1fr 1fr 1fr; gap:12px; margin-bottom:12px; }
+  .metric { background:#0b1220; border:1px solid var(--line); border-radius:8px; padding:14px; text-align:center; }
+  .metric .v { font-size:26px; font-weight:700; }
+  .metric .l { font-size:12px; color:var(--mut); }
+  .pill { display:inline-block; padding:2px 8px; border-radius:999px; font-size:11px; font-weight:600; }
+  .hi { background:#7f1d1d; color:#fecaca; } .lo { background:#14532d; color:#bbf7d0; }
+  .muted { color:var(--mut); font-size:12px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>VitalScan — Group 3 Risk Demo</h1>
+  <p class="sub">Paste Group 1's scan output, fill the questionnaire, build the <code>/predict/risk</code> payload, then predict.</p>
+
+  <!-- STEP 1: Group 1 JSON -->
+  <div class="card">
+    <h2>1 · Paste Group 1 scan output</h2>
+    <textarea id="g1"></textarea>
+  </div>
+
+  <!-- STEP 2: questionnaire -->
+  <div class="card">
+    <h2>2 · Questionnaire / profile</h2>
+    <div class="grid">
+      <div class="field"><label>Age (years)</label><input id="age" type="number" value="54"></div>
+      <div class="field"><label>Sex</label><select id="sex"><option value="1">Male</option><option value="0">Female</option></select></div>
+      <div class="field"><label>BMI</label><input id="bmi" type="number" step="0.1" value="29.0"></div>
+      <div class="field"><label>Chest-pain type (cp)</label><select id="cp"><option value="1">1 — typical angina</option><option value="2">2 — atypical</option><option value="3">3 — non-anginal</option><option value="4" selected>4 — asymptomatic</option></select></div>
+      <div class="field"><label>Exercise angina (exang)</label><select id="exang"><option value="0">No</option><option value="1" selected>Yes</option></select></div>
+      <div class="field"><label>Smoker</label><select id="smoker"><option value="0">No</option><option value="1" selected>Yes</option></select></div>
+      <div class="field"><label>Physically active</label><select id="phys_activity"><option value="1">Yes</option><option value="0" selected>No</option></select></div>
+      <div class="field"><label>General health</label><select id="gen_health"><option value="1">1 — excellent</option><option value="2">2 — very good</option><option value="3">3 — good</option><option value="4" selected>4 — fair</option><option value="5">5 — poor</option></select></div>
+      <div class="field"><label>Difficulty walking</label><select id="diff_walk"><option value="0">No</option><option value="1" selected>Yes</option></select></div>
+    </div>
+    <p class="muted" style="margin-top:10px">Leave nothing blank for the demo; the API imputes any missing field and lowers confidence.</p>
+  </div>
+
+  <!-- STEP 3: build + predict -->
+  <div class="card">
+    <h2>3 · Build payload &amp; predict</h2>
+    <button id="buildBtn">Build /predict/risk payload</button>
+    <button id="predictBtn" disabled>Predict</button>
+    <div id="buildErr" class="err"></div>
+    <h2 style="margin-top:16px">Payload sent to /predict/risk</h2>
+    <pre id="payload">— click "Build" —</pre>
+  </div>
+
+  <!-- result -->
+  <div class="card" id="resultCard" style="display:none">
+    <h2>Result</h2>
+    <div class="result-grid">
+      <div class="metric"><div class="v" id="mDia">–</div><div class="l">diabetes_risk</div></div>
+      <div class="metric"><div class="v" id="mHyp">–</div><div class="l">hypertension_risk</div></div>
+      <div class="metric"><div class="v" id="mConf">–</div><div class="l">confidence</div></div>
+    </div>
+    <h2>Full response</h2>
+    <pre id="result"></pre>
+  </div>
+</div>
+
+<script>
+const EXAMPLE = {
+  "scan_id":"scan_b5d67f4e2cfd","timestamp":"2026-06-11T03:12:49+00:00","mode":"mock",
+  "biomarkers":{
+    "heart_rate":{"value":76,"confidence":0.93,"unit":"bpm"},
+    "hrv_sdnn":{"value":47,"confidence":0.86,"unit":"ms"},
+    "stress_index":{"value":0.43,"confidence":0.77,"unit":"score"},
+    "blood_pressure":{"value":{"systolic":125,"diastolic":80},"confidence":0.1,"unit":"mmHg"}
+  }
+};
+document.getElementById("g1").value = JSON.stringify(EXAMPLE, null, 2);
+
+const PROFILE = ["age","sex","bmi","cp","exang","smoker","phys_activity","gen_health","diff_walk"];
+let builtPayload = null;
+
+// Group 1 wraps each biomarker as {value, confidence, unit}; pull the .value out.
+function unwrap(x){ return (x && typeof x === "object" && "value" in x) ? x.value : x; }
+
+function sanitize(s){ return s.trim().replace(/,\s*$/,""); }   // tolerate a trailing comma from a pasted array element
+
+function buildPayload(){
+  const raw = sanitize(document.getElementById("g1").value);
+  const g1 = JSON.parse(raw);                       // throws -> caught below
+  const bm = g1.biomarkers || {};
+  const bp = bm.blood_pressure ? unwrap(bm.blood_pressure) : {};
+  const biomarkers = {
+    heart_rate: unwrap(bm.heart_rate),
+    hrv_sdnn: unwrap(bm.hrv_sdnn),
+    stress_index: unwrap(bm.stress_index),
+    blood_pressure: { systolic: bp ? bp.systolic : null, diastolic: bp ? bp.diastolic : null }
+  };
+  const profile = {};
+  for (const f of PROFILE){ const v = document.getElementById(f).value; if (v !== "") profile[f] = Number(v); }
+  return { biomarkers, profile, conditions:["diabetes","hypertension"] };
+}
+
+document.getElementById("buildBtn").onclick = () => {
+  const errEl = document.getElementById("buildErr"); errEl.textContent = "";
+  try {
+    builtPayload = buildPayload();
+    document.getElementById("payload").textContent = JSON.stringify(builtPayload, null, 2);
+    document.getElementById("predictBtn").disabled = false;
+  } catch (e) {
+    builtPayload = null;
+    document.getElementById("predictBtn").disabled = true;
+    errEl.textContent = "Could not parse Group 1 JSON: " + e.message;
+  }
+};
+
+const pct = x => (x == null ? "–" : (x*100).toFixed(0) + "%");
+
+document.getElementById("predictBtn").onclick = async () => {
+  if (!builtPayload) return;
+  const errEl = document.getElementById("buildErr"); errEl.textContent = "";
+  try {
+    const res = await fetch("/predict/risk", {
+      method:"POST", headers:{"Content-Type":"application/json"}, body: JSON.stringify(builtPayload)
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(JSON.stringify(data));
+    document.getElementById("resultCard").style.display = "block";
+    document.getElementById("mDia").textContent = pct(data.diabetes_risk);
+    document.getElementById("mHyp").textContent = pct(data.hypertension_risk);
+    document.getElementById("mConf").textContent = data.confidence ?? "–";
+    document.getElementById("result").textContent = JSON.stringify(data, null, 2);
+    document.getElementById("resultCard").scrollIntoView({behavior:"smooth"});
+  } catch (e) {
+    errEl.textContent = "Prediction failed (is the server running?): " + e.message;
+  }
+};
+</script>
+</body>
+</html>
